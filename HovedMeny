@@ -1,18 +1,15 @@
 # Prosjekt i Robot host 2015
-# Programmet er avhengig av bibliotekene matplotlib, numpy og OpenCV
 
 from Tkinter import Tk, Button, W, Entry, Label, Canvas
-import numpy as np
+import threading, imghdr
 import cv2
+import time
 
 class HovedMeny():
-    # Deklarering av variabler
-    innhentVideo = False
 
     # init fungerer som en "contstructor".
     def __init__(self,hovedVindu):
         self.master = hovedVindu
-
 
     def Knapper(self):
         # Genererer alle knappene til hovedvinduet.
@@ -59,20 +56,43 @@ class HovedMeny():
 
 
     def startStoppToggle(self):
-        # Toggleknapp for start og stopp av video
+        # Toggleknapp for start og stopp av video. Starter threading for innlasting av video
         if self.StartStoppVideo.config('text')[-1] == "Start Video":
             self.StartStoppVideo.config(text="Stopp Video")
-            self.innhentVideo == True
+            self.lastInnVideo = False
+            self.t = threading.Thread(target=self.VideoInnhenting)
+            self.t.start()
         else:
             self.StartStoppVideo.config(text="Start Video")
-            self.innhentVideo == False
+            self.lastInnVideo = True
+
 
     def IPInput(self):
-        # Hentet IP og Port nummer fra tekstfeltet. Printes ut i terminalvinduet.
+        # Hentet IP og Port nummer fra tekslastInnVideo = Falsetfeltet. Printes ut i terminalvinduet.
         NAOip = self.NAOipTekst.get()
         NAOport = self.NAOPortTekst.get()
         print(NAOip)
         print(NAOport)
+
+
+    def VideoInnhenting(self):
+        # Traad for innlasting av bilde
+        self.opptak = cv2.VideoCapture(0)
+
+        while(self.lastInnVideo == False):
+            ret, frame = self.opptak.read()
+            
+            if ret == True:
+                bilde = cv2.imread(frame,)
+
+                self.originalVideo.create_image(0,0, image=graaBilde)
+
+                time.sleep(1)
+
+            time.sleep(1)
+
+        self.opptak.release()
+        cv2.destroyAllWindows()
 
 
 # Oppretter hovedvinduet
@@ -87,3 +107,8 @@ program.VideoLayout()
 
 # Starter event handling
 root.mainloop()
+
+
+
+
+
