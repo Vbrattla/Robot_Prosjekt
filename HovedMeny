@@ -1,4 +1,5 @@
 # Prosjekt i Robot host 2015
+# Programmet er avhengig av bibliotekene matplotlib, numpy og OpenCV
 
 from Tkinter import Tk, Button, W, Entry, Label, Canvas
 import numpy as np
