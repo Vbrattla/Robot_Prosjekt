@@ -1,37 +1,63 @@
 # Prosjekt i Robot host 2015
-#
-# Eksperimentering med GUI og knapper. 
 
 from Tkinter import Tk, Button, W, Entry, Label
-from Tkinter import LEFT, RIGHT, TOP, BOTTOM
 
 class HovedMeny():
-    # init fungerer som en "contstructor"
+    # init fungerer som en "contstructor".
     def __init__(self,hovedVindu):
         self.master = hovedVindu
-        hovedVindu.title("Prosjekt i Robot")
-        hovedVindu.geometry("1900x600")
 
-        # Plassering av knapper, label og entryfelt.
-        self.NAOipLabel = Label(hovedVindu, text="NAO IP adresse")
+    def Knapper(self):
+        # Genererer alle knappene til hovedvinduet.
+        self.NAOipLabel = Label(self.master, text="NAO IP adresse")
         self.NAOipLabel.config(height = 4, width=20)
         self.NAOipLabel.grid(row=1, column=1, padx=2, pady=10, sticky=W)
 
-        self.NAOipTekst = Entry(hovedVindu)
+        self.NAOipTekst = Entry(self.master)
+        self.NAOipTekst.config(width=15)
         self.NAOipTekst.grid(row=1, column=2, padx=2, pady=10, sticky=W)
 
-        self.test1_button = Button(hovedVindu, text="test1", bg = "grey")
+        self.NAOPortLabel = Label(self.master, text="NAO Port nummer")
+        self.NAOPortLabel.config(height = 4, width=20)
+        self.NAOPortLabel.grid(row=1, column=3, padx=2, pady=10, sticky=W)
+
+        self.NAOPortTekst = Entry(self.master)
+        self.NAOPortTekst.config(width=8)
+        self.NAOPortTekst.grid(row=1, column=4, padx=2, pady=10, sticky=W)
+
+        self.NAOipTilkobling = Button(self.master, text="Koble til NAO robot", bg = "grey", command = self.IPInput)
+        self.NAOipTilkobling.config(width=20)
+        self.NAOipTilkobling.grid(row=1, column=5, padx=20, pady=10, sticky=W)
+
+        self.test1_button = Button(self.master, text="Menyvalg 1", bg = "grey")
         self.test1_button.config(height = 4, width=20)
         self.test1_button.grid(row=2, column=1, padx=2, pady=10, sticky=W)
 
-        self.test2_button = Button(hovedVindu, text="test2", bg = "grey")
+        self.test2_button = Button(self.master, text="Menyvalg 2", bg = "grey")
         self.test2_button.config(height = 4, width=20)
         self.test2_button.grid(row=3, column=1, padx=2, pady=10, sticky=W)
 
-        self.test3_button = Button(hovedVindu, text="test3", bg = "grey")
+        self.test3_button = Button(self.master, text="Avslutt", bg = "grey", command = self.master.quit)
         self.test3_button.config(height = 4, width=20)
         self.test3_button.grid(row=4, column=1, padx=2, pady=10, sticky=W)
 
+    def videoOpptak(self):
+        # Opptak ved hjelp av webcamera. Kjorer i lokke.
+        print("hei")
+
+
+    def IPInput(self):
+        # Hentet IP og Port nummer fra tekstfeltet. Printes ut i terminalvinduet.
+        NAOip = self.NAOipTekst.get()
+        NAOport = self.NAOPortTekst.get()
+        print(NAOip)
+        print(NAOport)
+
+
 root = Tk()
-HovedMeny(root)
+root.geometry("1800x800")
+root.title("Prosjekt i Robot")
+
+program = HovedMeny(root)
+program.Knapper()
 root.mainloop()
