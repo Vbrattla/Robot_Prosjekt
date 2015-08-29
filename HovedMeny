@@ -1,14 +1,15 @@
 # Prosjekt i Robot host 2015
 
 from Tkinter import Tk, Button, W, Entry, Label, Canvas
-import threading, imghdr
+import threading
 import cv2
+from PIL import Image, ImageTk
 import time
 
 class HovedMeny():
 
-    # init fungerer som en "contstructor".
     def __init__(self,hovedVindu):
+        # init fungerer som en "contstructor".
         self.master = hovedVindu
 
     def Knapper(self):
@@ -81,15 +82,12 @@ class HovedMeny():
 
         while(self.lastInnVideo == False):
             ret, frame = self.opptak.read()
-            
+            # Gaar inn i lokke dersom man har avlest bilde fra kameraobjektet
             if ret == True:
-                bilde = cv2.imread(frame,)
-
-                self.originalVideo.create_image(0,0, image=graaBilde)
-
-                time.sleep(1)
-
-            time.sleep(1)
+                bildePre = Image.fromarray(frame)
+                bilde = ImageTk.PhotoImage(bildePre)
+                self.originalVideo.create_image(322,242,image=bilde)    # Merk at posisjon er relativ til hovedvinduet.
+                time.sleep(0.1)
 
         self.opptak.release()
         cv2.destroyAllWindows()
@@ -107,6 +105,9 @@ program.VideoLayout()
 
 # Starter event handling
 root.mainloop()
+
+
+
 
 
 
