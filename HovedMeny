@@ -1,15 +1,15 @@
 # Prosjekt i Robot host 2015
 
 from Tkinter import Tk, Button, W, Entry, Label, Canvas
-import threading
-import cv2
+import threading, cv2, time, sys
 from PIL import Image, ImageTk
-import time
+
+# TODO Se hvilke variabler som bor deklarerer tidligere
 
 class HovedMeny():
 
     def __init__(self,hovedVindu):
-        # init fungerer som en "contstructor".
+        # init fungerer som en "constructor".
         self.master = hovedVindu
 
     def Knapper(self):
@@ -30,7 +30,7 @@ class HovedMeny():
         self.NAOPortTekst.config(width=8)
         self.NAOPortTekst.grid(row=1, column=4, padx=2, pady=10, sticky=W)
 
-        self.NAOipTilkobling = Button(self.master, text="Koble til NAO robot", bg = "grey", command = self.IPInput)
+        self.NAOipTilkobling = Button(self.master, text="Koble til Nao robot", bg = "grey", command = self.IPInput)
         self.NAOipTilkobling.config(width=20)
         self.NAOipTilkobling.grid(row=1, column=5, padx=20, pady=10, sticky=W)
 
@@ -38,13 +38,13 @@ class HovedMeny():
         self.StartStoppVideo.config(height = 4, width=20)
         self.StartStoppVideo.grid(row=2, column=1, padx=2, pady=10, sticky=W)
 
-        self.test2_button = Button(self.master, text="Menyvalg 2", bg = "grey")
+        self.test2_button = Button(self.master, text="Bibliotek", bg = "grey")
         self.test2_button.config(height = 4, width=20)
         self.test2_button.grid(row=3, column=1, padx=2, pady=10, sticky=W)
 
-        self.test3_button = Button(self.master, text="Avslutt", bg = "grey", command = self.master.quit)
-        self.test3_button.config(height = 4, width=20)
-        self.test3_button.grid(row=4, column=1, padx=2, pady=10, sticky=W)
+        self.Avslutt = Button(self.master, text="Avslutt", bg = "grey", command = self.avslutteProgram)
+        self.Avslutt.config(height = 4, width=20)
+        self.Avslutt.grid(row=4, column=1, padx=2, pady=10, sticky=W)
 
 
     def VideoLayout(self):
@@ -61,36 +61,66 @@ class HovedMeny():
         if self.StartStoppVideo.config('text')[-1] == "Start Video":
             self.StartStoppVideo.config(text="Stopp Video")
             self.lastInnVideo = False
-            self.t = threading.Thread(target=self.VideoInnhenting)
-            self.t.start()
+            self.t1 = threading.Thread(target=self.VisOriginalVideo)
+            self.t1.start()
         else:
             self.StartStoppVideo.config(text="Start Video")
             self.lastInnVideo = True
 
 
+    def avslutteProgram(self):
+        # Avslutter eventuell traad for videoimport.
+        self.lastInnVideo = True
+        sys.exit()
+
+
     def IPInput(self):
-        # Hentet IP og Port nummer fra tekslastInnVideo = Falsetfeltet. Printes ut i terminalvinduet.
-        NAOip = self.NAOipTekst.get()
+        # Toggle tilkoblingsknapp, laaser IP og PORT felt. Lagrer IP og PORT nummer
+        if self.NAOipTilkobling.config('text')[-1] == "Koble til Nao robot":
+            self.NAOipTilkobling.config(text="Nao robot tilkoblet")
+            self.NAOPortTekst.config(state="disabled")
+            self.NAOipTekst.config(state="disabled")
+
+        else:
+            self.NAOipTilkobling.config(text="Koble til Nao robot")
+            self.NAOPortTekst.config(state="normal")
+            self.NAOipTekst.config(state="normal")
+
+        NAOip =  self.NAOipTekst.get()
         NAOport = self.NAOPortTekst.get()
-        print(NAOip)
-        print(NAOport)
+
+        print(NAOip) #testkode
+        print(NAOport) #testkode
 
 
-    def VideoInnhenting(self):
+    def VisOriginalVideo(self):
         # Traad for innlasting av bilde
         self.opptak = cv2.VideoCapture(0)
+        self.HOGde = cv2.HOGDescriptor()
 
         while(self.lastInnVideo == False):
             ret, frame = self.opptak.read()
+            
             # Gaar inn i lokke dersom man har avlest bilde fra kameraobjektet
             if ret == True:
                 bildePre = Image.fromarray(frame)
                 bilde = ImageTk.PhotoImage(bildePre)
                 self.originalVideo.create_image(322,242,image=bilde)    # Merk at posisjon er relativ til hovedvinduet.
-                time.sleep(0.1)
-
+                testavBilde = self.HOGdeskriptor(frame)
+                time.sleep(0.5)
+                
         self.opptak.release()
         cv2.destroyAllWindows()
+
+
+    def HOGdeskriptor(self, bilde):
+        # HOG deskriptor for aa finne bilde features.
+
+        descriptors = self.HOGde.compute(bilde, winStride=(64,128), padding=(0, 0))
+        print descriptors.shape   # Testkode
+
+        return descriptors
+
 
 
 # Oppretter hovedvinduet
@@ -105,10 +135,6 @@ program.VideoLayout()
 
 # Starter event handling
 root.mainloop()
-
-
-
-
 
 
 
