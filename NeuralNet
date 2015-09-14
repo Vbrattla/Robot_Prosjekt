@@ -35,8 +35,6 @@ class NeuralNet():
             bildePosMat = numpy.asarray(bildePosSkalert)
             self.posTrening = self.HOGde.compute(bildePosMat, winStride=(24,32),padding=(0, 0))
 
-
-
         for neg in range(1,antallNeg):
             # Laster inn bilder uten fjes og utforer HoG
             bildeNavnNeg = "\NegTrening (" + str(neg) + ").jpg"
