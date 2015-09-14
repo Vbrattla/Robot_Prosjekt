@@ -13,6 +13,7 @@ class NeuralNet():
 
 
     def ImportTrening(self,antallPos,antallNeg):
+        # NB Dette maa tilpasses til cv2 sine tillate parameter!!!
         # Maksimum treningsdata er 687 positive og 836 negative. Utforer HoG og samler i matriser
         # Treningsdata har default vindusstorrelse paa bilder: 32x24.
         # Anvender HoG blokkstorrelse paa 4x4 og cellestorrelse 8x6.
