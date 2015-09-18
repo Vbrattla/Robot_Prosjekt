@@ -12,11 +12,10 @@ class NeuralNet():
         self.HOGde = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 9)
 
     def ImportTrening(self,antallPos,antallNeg):
-        # NB Dette maa tilpasses til cv2 sine tillate parameter!!!
         # Maksimum treningsdata er 687 positive og 836 negative. Utforer HoG og samler i matriser
-        # Treningsdata har default vindusstorrelse paa bilder: 32x24.
-        # Anvender HoG blokkstorrelse paa 4x4 og cellestorrelse 8x6.
-        # Tilsvarer 144 features per bilde
+        # Treningsdata har default vindusstorrelse paa bilder: 32x64.
+        # Anvender HoG blokkstorrelse paa 4x4 og cellestorrelse 8x8.
+        # Tilsvarer 432 features per bilde
 
         # Lager tomme matriser
         self.posTrening = numpy.empty((1,432))
