@@ -9,7 +9,7 @@ class NeuralNet():
 
     def __init__(self):
         # Initierer HoG variabler.
-        self.HOGde = cv2.HOGDescriptorcv2.HOGDescriptor()
+        self.HOGde = cv2.HOGDescriptor()
 
 
     def ImportTrening(self,antallPos,antallNeg):
