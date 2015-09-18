@@ -8,9 +8,8 @@ import numpy
 class NeuralNet():
 
     def __init__(self):
-        # Initierer HoG variabler.
-        self.HOGde = cv2.HOGDescriptor()
-
+        # Initierer HoG variabler. Initierer parameterisering av HoG.
+        self.HOGde = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 9)
 
     def ImportTrening(self,antallPos,antallNeg):
         # NB Dette maa tilpasses til cv2 sine tillate parameter!!!
@@ -20,36 +19,41 @@ class NeuralNet():
         # Tilsvarer 144 features per bilde
 
         # Lager tomme matriser
-        self.posTrening = numpy.zeros((144,antallPos))
-        self.negTrening = numpy.zeros((144,antallNeg))
+        self.posTrening = numpy.empty((1,432))
+        self.negTrening = numpy.empty((1,432))
 
         # Bildesti til treningsdata
         self.sti = "C:\Users\Vegard\Documents\Python\Ansikt_Database"
 
         for pos in range(1,antallPos):
-            # Laster inn bilder med fjes og utforer HoG
+            # Laster inn bilder med fjes og utforer HoG. Endrer storrelse med resize(bredde,hoyde)
             bildeNavnPos = "\PosTrening (" + str(pos) + ").jpg"
             bildeSti = str(self.sti+""+bildeNavnPos)
             bildePos = Image.open(bildeSti)
-            bildePosSkalert = bildePos.resize((24, 32), Image.ANTIALIAS)
+            bildePosSkalert = bildePos.resize((32,64), Image.ANTIALIAS)
             bildePosMat = numpy.asarray(bildePosSkalert)
-            self.posTrening = self.HOGde.compute(bildePosMat, winStride=(24,32),padding=(0, 0))
+            self.posTrening = numpy.vstack([self.posTrening,(self.HOGde.compute(bildePosMat, winStride=(32,64), padding=(0,0))).T])
 
         for neg in range(1,antallNeg):
-            # Laster inn bilder uten fjes og utforer HoG
+            # Laster inn bilder uten fjes og utforer HoG. Endrer storrelse med resize(bredde,hoyde)
             bildeNavnNeg = "\NegTrening (" + str(neg) + ").jpg"
             bildeSti = str(self.sti+""+bildeNavnNeg)
             bildeNeg = Image.open(bildeSti)
-            bildeNegSkalert = bildeNeg.resize((24, 32), Image.ANTIALIAS)
+            bildeNegSkalert = bildeNeg.resize((32,64), Image.ANTIALIAS)
             bildeNegMat = numpy.asarray(bildeNegSkalert)
-            self.negTrening = self.HOGde.compute(bildeNegMat, winStride=(24,32), padding=(0, 0))
-
+            self.negTrening = numpy.vstack([self.negTrening,(self.HOGde.compute(bildeNegMat, winStride=(32,64), padding=(0,0))).T])
 
         return self.posTrening
+    
+
+    def treneNeuralNetverk(self,treningsData,klassifiseringsData):
+        # Trening av neuralt nettverk. Treningsdata er positive og negative bilder, klassifiseringsdata
+        # er klassifiseringen av treningsdata.
+        print("test")
+
 
 
 program = NeuralNet
-matrise = program().ImportTrening(100,100)
+matrise = program().ImportTrening(300,300)
 
-print(matrise)
-
+print matrise.shape
