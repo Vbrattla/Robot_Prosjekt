@@ -45,14 +45,60 @@ class NeuralNet():
         return self.posTrening
     
 
-    def treneNeuralNetverk(self,treningsData,klassifiseringsData):
-        # Trening av neuralt nettverk. Treningsdata er positive og negative bilder, klassifiseringsdata
-        # er klassifiseringen av treningsdata.
-        print("test")
+    def NeuralNetverk(self,nh,antallInput):
+
+        # TODO: Skille Neuralt nettverk i egen klasse.
+        # Lager et neuralt nettverk.
+        # antallInput = antall features i inngangsvektoren.
+        # nh = antall gjemte noder i nettverket.
+
+        # Omraadet vektene skal ligge mellom og antall utganger.
+        self.initVekt = 1/math.sqrt(nh)
+        self.antallKlasser = 2
+
+        # Lager matriser for vekter.
+        # ItH = Input to Hidden, HtOK1/2 = Hidden to Output Klasse 1/2.
+        self.vektItH = numpy.empty((nh, antallInput))
+        self.vektHtOK1 = numpy.empty((nh, 2))
+        self.vektHtOK2 = numpy.empty((nh, 2))
+
+        # Lager vektorer for ItH og HtO Bias.
+        self.ItHBias = numpy.empty((nh,1))
+        self.HtOBias = numpy.empty((nh,1))
+
+        # Fyller inn verdier i nodevekt og bias.
+        for rad in range(0, nh):
+
+            # Fyller Bias med vekslende tall -0.5 og 0.5.
+            self.ItHBias[rad,0] = 0.5*math.pow(-1,rad)
+            self.HtOBias[rad,0] = 0.5*math.pow(-1,rad)
+
+            # Lager nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
+            for kol in range(0,antallInput):
+                self.vektItH[rad, kol] = (random.randrange(-100,100) * self.initVekt)/100
+
+                if kol <= self.antallKlasser-1:
+                    self.vektHtOK1[rad, kol] = (random.randrange(-100,100) * self.initVekt)/100
+                    self.vektHtOK2[rad, kol] = (random.randrange(-100,100) * self.initVekt)/100
 
 
 
-program = NeuralNet
-matrise = program().ImportTrening(300,300)
+    def forwardComputation(self):
+        # TODO: Implementere flere aktiveringsfunksjoner?
+        # Regner ut forward computation for det neurale nettverket.
+        # Bruker aktiveringsfunksjon
 
-print matrise.shape
+        # Lager en "dummy" inngangsvekor. Vil tilsvare signalet
+        self.inngangsVektor = numpy.ones(self.nh,1)
+
+        # Lager utgangsvektor fra den gjemte noden
+        self.utgangsVektorHidden = numpy.zeros(self.nh,1)
+
+        # Finner "net" for alle nodene
+        self.netHidden = self.vektItH*self.inngangsvektor + self.ItHBias
+
+        # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
+        for node in range(0,self.nh):
+            self.utgangsVektorHidden[node,0] = 1/(1 + math.exp(self.netHidden[self.nh,0]))
+
+
