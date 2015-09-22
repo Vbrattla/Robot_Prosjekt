@@ -13,14 +13,27 @@ class NeuraltNettverk():
         self.antallKlasser = c
         self.antallInput = d
 
+        # Learning raten til det neurale nettverket (mulighet for aa kunne endre)
+        self.larerate = 1
+
+        # Lager utgangsvektor fra den gjemte noden og utgangen
+        self.y_Hidden = numpy.zeros((self.nh,1))
+        self.z_Utgang = numpy.zeros((self.antallKlasser,1))
+
+        # DUMMY VEKTOR. MAA ERSTATTES!
+        self.target = numpy.ones((1,self.antallKlasser))
+
+        # Utgangsvektor fra det neurale nettverket
+        self.z_Utgang = numpy.empty((self.antallKlasser,1))
+
         # Lager tomme matriser for vektene
         self.vektItH = numpy.empty((self.nh, d))
         self.vektHtO = numpy.empty((self.antallKlasser,self.nh))
 
         # Lager tomme vektorer for ItH, HtO Bias og bias vekt
-        self.ItHBias = numpy.empty((self.nh,1))
+        self.ItHBias = numpy.ones((self.nh,1))
         self.vektBiasItH = numpy.empty((self.nh,1))
-        self.HtOBias = numpy.empty((self.antallKlasser,1))
+        self.HtOBias = numpy.ones((self.antallKlasser,1))
         self.vektBiasHtO = numpy.empty((self.antallKlasser,1))
 
 
@@ -31,13 +44,11 @@ class NeuraltNettverk():
         for rad in range(0, self.nh):
 
             # Lager bias og vekt for Input to Hidden
-            self.ItHBias[rad,0] = 0.5*math.pow(-1,rad)
-            self.vektBiasItH[rad,0] = (random.randrange(-100,100) * self.initVekt)/100
+            self.vektBiasItH[rad,0] = 0.5*math.pow(-1,rad)
 
             # Lager bias og vekt for Hidden to Output
             if rad <= self.antallKlasser-1:
-                self.HtOBias[rad,0] = 0.5*math.pow(-1,rad)
-                self.vektBiasHtO[rad, 0] = (random.randrange(-100,100) * self.initVekt)/100
+                self.vektBiasHtO[rad,0] = 0.5*math.pow(-1,rad)
 
             # Lager Input to Hidden nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
             for kol in range(0,self.antallInput):
@@ -49,27 +60,20 @@ class NeuraltNettverk():
 
 
     def FeedForward(self):
-        # TODO: Implementere target vektor.
-        # TODO: vektor for Net maa gjores tilgjengelig for hele klassen
-        # NB: Operator * er element multiplikasjon, dot kommando er vektor multiplikasjon.
         # Regner ut FeedForward for det neurale nettverket.
 
-        # Test variabler.
+        # Test variabler. FJERNES I ETTERKANT!
         self.inngangsVektor = numpy.ones((self.antallInput,1))
 
-        # Lager utgangsvektor fra den gjemte noden og utgangen
-        self.y_Hidden = numpy.zeros((self.nh,1))
-        self.z_Utgang = numpy.zeros((self.antallKlasser,1))
-
         # Finner "net_j" for Input to Hidden
-        self.netHidden = (self.vektItH).dot(self.inngangsVektor) + self.ItHBias.T*self.vektBiasItH
+        self.netHidden = (self.vektItH).dot(self.inngangsVektor) + self.ItHBias*self.vektBiasItH
 
         # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
         for node in range(0,self.nh):
             self.y_Hidden[node,0] = 1/(1 + math.exp(self.netHidden[node,0]))
 
         # Finner "net" for Hidden to Output.
-        self.netUtgang = (self.vektHtO).dot(self.y_Hidden) + self.HtOBias.T*self.vektBiasHtO
+        self.netUtgang = (self.vektHtO).dot(self.y_Hidden) + self.HtOBias*self.vektBiasHtO
 
         # Regner ut utgangsverdiene z
         for node in range(0,self.antallKlasser):
@@ -79,12 +83,45 @@ class NeuraltNettverk():
         return self.z_Utgang
 
 
+    def Backward(self):
+
+        # Finner f(net) derivert
+        z_utgangDerivert = self.z_Utgang.T*(numpy.ones((1,self.antallKlasser)) - self.z_Utgang.T)
+
+        # Finner sensitiviteten til Hidden to Output
+        sensitivitetHtO = ((self.target - self.z_Utgang.T)*z_utgangDerivert).T
+
+        # Lager en vektor for delta vektHtO
+        deltaVektHtO = numpy.zeros((self.antallKlasser,self.nh))
+        deltaVektBiasHtO = numpy.zeros((self.antallKlasser,1))
+
+        # Finner delta vektHtO NB! IMPLEMENTER OPPDATERING AV BIAS VEKTENE!
+        for vekt in range(0,self.antallKlasser):
+            for node in range(0,self.nh):
+                deltaVektHtO[vekt,node] = sensitivitetHtO[vekt,0]*self.y_Hidden[node,0]
+                deltaVektBiasHtO[vekt,0] =  sensitivitetHtO[vekt,0]*self.HtOBias[vekt,0]
+
+        # Oppdaterer Hidden to Output vektene
+        self.vektHtO = self.vektHtO +  deltaVektHtO
+        self.vektBiasHtO = self.vektBiasHtO + deltaVektBiasHtO
+
+        return self.vektBiasHtO,self.vektHtO
+
+        # Repetere for de siste vektene.
+
+
+
+
+
+
+
 Program = NeuraltNettverk(20,2,10)
 Program.lageVekter()
 matrise = Program.FeedForward()
+test,test2 = Program.Backward()
 
-print(matrise)
-
+print(test)
+print(test2)
 
 
 
