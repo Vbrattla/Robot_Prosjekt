@@ -1,0 +1,93 @@
+import numpy
+import math, random
+
+
+class NeuraltNettverk():
+
+    def __init__(self,nh,c,d):
+        # Argumenter;  nh = gjemte noder, c= antall klasser, d= feature vektor dimensjon
+
+        # Omraadet vektene skal ligge mellom og antall utganger.
+        self.nh = nh
+        self.initVekt = 1/math.sqrt(self.nh)
+        self.antallKlasser = c
+        self.antallInput = d
+
+        # Lager tomme matriser for vektene
+        self.vektItH = numpy.empty((self.nh, d))
+        self.vektHtO = numpy.empty((self.antallKlasser,self.nh))
+
+        # Lager tomme vektorer for ItH, HtO Bias og bias vekt
+        self.ItHBias = numpy.empty((self.nh,1))
+        self.vektBiasItH = numpy.empty((self.nh,1))
+        self.HtOBias = numpy.empty((self.antallKlasser,1))
+        self.vektBiasHtO = numpy.empty((self.antallKlasser,1))
+
+
+    def lageVekter(self):
+    # Denne metoden initerer vekter og bias til det neurale nettverket.
+
+        # Fyller inn verdier i nodevekt og bias.
+        for rad in range(0, self.nh):
+
+            # Lager bias og vekt for Input to Hidden
+            self.ItHBias[rad,0] = 0.5*math.pow(-1,rad)
+            self.vektBiasItH[rad,0] = (random.randrange(-100,100) * self.initVekt)/100
+
+            # Lager bias og vekt for Hidden to Output
+            if rad <= self.antallKlasser-1:
+                self.HtOBias[rad,0] = 0.5*math.pow(-1,rad)
+                self.vektBiasHtO[rad, 0] = (random.randrange(-100,100) * self.initVekt)/100
+
+            # Lager Input to Hidden nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
+            for kol in range(0,self.antallInput):
+                self.vektItH[rad, kol] = (random.randrange(-100,100) * self.initVekt)/100
+
+                # Lager Hidden to Output nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
+                if kol <= self.antallKlasser-1:
+                    self.vektHtO[kol, rad] = (random.randrange(-100,100) * self.initVekt)/100
+
+
+    def FeedForward(self):
+        # TODO: Implementere target vektor.
+        # TODO: vektor for Net maa gjores tilgjengelig for hele klassen
+        # NB: Operator * er element multiplikasjon, dot kommando er vektor multiplikasjon.
+        # Regner ut FeedForward for det neurale nettverket.
+
+        # Test variabler.
+        self.inngangsVektor = numpy.ones((self.antallInput,1))
+
+        # Lager utgangsvektor fra den gjemte noden og utgangen
+        self.y_Hidden = numpy.zeros((self.nh,1))
+        self.z_Utgang = numpy.zeros((self.antallKlasser,1))
+
+        # Finner "net_j" for Input to Hidden
+        self.netHidden = (self.vektItH).dot(self.inngangsVektor) + self.ItHBias.T*self.vektBiasItH
+
+        # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
+        for node in range(0,self.nh):
+            self.y_Hidden[node,0] = 1/(1 + math.exp(self.netHidden[node,0]))
+
+        # Finner "net" for Hidden to Output.
+        self.netUtgang = (self.vektHtO).dot(self.y_Hidden) + self.HtOBias.T*self.vektBiasHtO
+
+        # Regner ut utgangsverdiene z
+        for node in range(0,self.antallKlasser):
+            self.z_Utgang[node,0] = 1/(1 + math.exp(self.netUtgang[node,0]))
+
+        # Returnerer utgangsvektor, der hver element beskrive en klasse.
+        return self.z_Utgang
+
+
+Program = NeuraltNettverk(20,2,10)
+Program.lageVekter()
+matrise = Program.FeedForward()
+
+print(matrise)
+
+
+
+
+
+
+
