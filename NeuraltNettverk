@@ -43,10 +43,10 @@ class NeuraltNettverk():
         # Fyller inn verdier i nodevekt og bias.
         for rad in range(0, self.nh):
 
-            # Lager bias og vekt for Input to Hidden
+            # Lager biasvekt for Input to Hidden
             self.vektBiasItH[rad,0] = 0.5*math.pow(-1,rad)
 
-            # Lager bias og vekt for Hidden to Output
+            # Lager biasvekt for Hidden to Output
             if rad <= self.antallKlasser-1:
                 self.vektBiasHtO[rad,0] = 0.5*math.pow(-1,rad)
 
