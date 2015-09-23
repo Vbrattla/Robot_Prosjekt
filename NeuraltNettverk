@@ -21,13 +21,13 @@ class NeuraltNettverk():
         self.z_Utgang = numpy.zeros((self.antallKlasser,1))
 
         # DUMMY VEKTOR. MAA ERSTATTES!
-        self.target = numpy.ones((1,self.antallKlasser))
+        self.target = numpy.array([1, 0])
 
         # Utgangsvektor fra det neurale nettverket
         self.z_Utgang = numpy.empty((self.antallKlasser,1))
 
         # Lager tomme matriser for vektene
-        self.vektItH = numpy.empty((self.nh, d))
+        self.vektItH = numpy.empty((self.nh, self.antallInput))
         self.vektHtO = numpy.empty((self.antallKlasser,self.nh))
 
         # Lager tomme vektorer for ItH, HtO Bias og bias vekt
@@ -84,29 +84,34 @@ class NeuraltNettverk():
 
 
     def Backward(self):
+        # DENNE METODEN MAA SJEKKES! MANGE FALLGRUVER
 
-        # Finner f(net) derivert
+        # Finner f(net_1) og f(net_2) derivert
+        y_utgangDerivert = self.y_Hidden.T*(numpy.ones((1,self.nh)) - self.y_Hidden.T)
         z_utgangDerivert = self.z_Utgang.T*(numpy.ones((1,self.antallKlasser)) - self.z_Utgang.T)
 
-        # Finner sensitiviteten til Hidden to Output
-        sensitivitetHtO = ((self.target - self.z_Utgang.T)*z_utgangDerivert).T
+        # Finner sensitiviteten til Hidden to Output og Input to Hidden
+        sensitivitetHtO = (((self.target - self.z_Utgang.T))*z_utgangDerivert).T
+        sensitivitetItH = y_utgangDerivert.T*self.vektHtO.T.dot(sensitivitetHtO)
 
-        # Lager en vektor for delta vektHtO
-        deltaVektHtO = numpy.zeros((self.antallKlasser,self.nh))
-        deltaVektBiasHtO = numpy.zeros((self.antallKlasser,1))
+        # Finner delta vekt HtO og ItH
+        deltaVektHtO = sensitivitetHtO.dot(self.y_Hidden.T)
+        deltaVektItH = sensitivitetItH.dot(self.inngangsVektor.T)
 
-        # Finner delta vektHtO NB! IMPLEMENTER OPPDATERING AV BIAS VEKTENE!
-        for vekt in range(0,self.antallKlasser):
-            for node in range(0,self.nh):
-                deltaVektHtO[vekt,node] = sensitivitetHtO[vekt,0]*self.y_Hidden[node,0]
-                deltaVektBiasHtO[vekt,0] =  sensitivitetHtO[vekt,0]*self.HtOBias[vekt,0]
+        # Finner delta vekt bias HtO og ItH
+        # SPORRE TRYGVE! Dersom Y0 er satt til 1, saa vil delta vekt bias = sensitiviteten?
+        deltaVektBiasHtO = sensitivitetHtO
+        deltaVektBiasItH = sensitivitetItH
+
+        # Oppdaterer Input to Hidden vektene
+        self.vektItH = self.vektItH + deltaVektItH
+        self.vektBiasItH = self.vektBiasItH + deltaVektBiasItH
 
         # Oppdaterer Hidden to Output vektene
-        self.vektHtO = self.vektHtO +  deltaVektHtO
+        self.vektHtO = self.HtOBias + deltaVektHtO
         self.vektBiasHtO = self.vektBiasHtO + deltaVektBiasHtO
 
-        return self.vektBiasHtO,self.vektHtO
-
+        return self.vektItH
         # Repetere for de siste vektene.
 
 
@@ -118,10 +123,9 @@ class NeuraltNettverk():
 Program = NeuraltNettverk(20,2,10)
 Program.lageVekter()
 matrise = Program.FeedForward()
-test,test2 = Program.Backward()
+test = Program.Backward()
 
-print(test)
-print(test2)
+print(test.shape)
 
 
 
