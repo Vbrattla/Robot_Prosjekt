@@ -17,14 +17,12 @@ class NeuraltNettverk():
         self.larerate = 1
 
         # Lager utgangsvektor fra den gjemte noden og utgangen
-        self.y_Hidden = numpy.zeros((self.nh,1))
-        self.z_Utgang = numpy.zeros((self.antallKlasser,1))
+        self.fnetHidden = numpy.zeros((self.nh,1))
+        self.fnetUtgang = numpy.zeros((self.antallKlasser,1))
 
         # DUMMY VEKTOR. MAA ERSTATTES!
-        self.target = numpy.array([1, 0])
-
-        # Utgangsvektor fra det neurale nettverket
-        self.z_Utgang = numpy.empty((self.antallKlasser,1))
+        self.target = numpy.array([1,0])
+        self.inngangsVektor = numpy.ones((self.antallInput,1))
 
         # Lager tomme matriser for vektene
         self.vektItH = numpy.empty((self.nh, self.antallInput))
@@ -62,40 +60,35 @@ class NeuraltNettverk():
     def FeedForward(self):
         # Regner ut FeedForward for det neurale nettverket.
 
-        # Test variabler. FJERNES I ETTERKANT!
-        self.inngangsVektor = numpy.ones((self.antallInput,1))
-
         # Finner "net_j" for Input to Hidden
         self.netHidden = (self.vektItH).dot(self.inngangsVektor) + self.ItHBias*self.vektBiasItH
 
         # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
         for node in range(0,self.nh):
-            self.y_Hidden[node,0] = 1/(1 + math.exp(self.netHidden[node,0]))
+            self.fnetHidden[node,0] = 1/(1 + math.exp((-1)*self.netHidden[node,0]))
 
         # Finner "net" for Hidden to Output.
-        self.netUtgang = (self.vektHtO).dot(self.y_Hidden) + self.HtOBias*self.vektBiasHtO
+        self.netUtgang = (self.vektHtO).dot(self.fnetHidden) + self.HtOBias*self.vektBiasHtO
 
-        # Regner ut utgangsverdiene z
+        # Regner ut utgangsverdiene z. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
         for node in range(0,self.antallKlasser):
-            self.z_Utgang[node,0] = 1/(1 + math.exp(self.netUtgang[node,0]))
+            self.fnetUtgang[node,0] = 1/(1 + math.exp((-1)*self.netUtgang[node,0]))
 
         # Returnerer utgangsvektor, der hver element beskrive en klasse.
-        return self.z_Utgang
-
+        return self.fnetUtgang
 
     def Backward(self):
-        # DENNE METODEN MAA SJEKKES! MANGE FALLGRUVER
 
         # Finner f(net_1) og f(net_2) derivert
-        y_utgangDerivert = self.y_Hidden.T*(numpy.ones((1,self.nh)) - self.y_Hidden.T)
-        z_utgangDerivert = self.z_Utgang.T*(numpy.ones((1,self.antallKlasser)) - self.z_Utgang.T)
+        fnetHiddenDerivert = self.fnetHidden.T*(numpy.ones((1,self.nh)) - self.fnetHidden.T)
+        fnetUtgangDerivert = self.fnetUtgang.T*(numpy.ones((1,self.antallKlasser)) - self.fnetUtgang.T)
 
         # Finner sensitiviteten til Hidden to Output og Input to Hidden
-        sensitivitetHtO = (((self.target - self.z_Utgang.T))*z_utgangDerivert).T
-        sensitivitetItH = y_utgangDerivert.T*self.vektHtO.T.dot(sensitivitetHtO)
+        sensitivitetHtO = (((self.target - self.fnetUtgang.T))*fnetUtgangDerivert).T
+        sensitivitetItH = fnetHiddenDerivert.T*self.vektHtO.T.dot(sensitivitetHtO)
 
         # Finner delta vekt HtO og ItH
-        deltaVektHtO = sensitivitetHtO.dot(self.y_Hidden.T)
+        deltaVektHtO = sensitivitetHtO.dot(self.fnetHidden.T)
         deltaVektItH = sensitivitetItH.dot(self.inngangsVektor.T)
 
         # Finner delta vekt bias HtO og ItH
@@ -111,24 +104,14 @@ class NeuraltNettverk():
         self.vektHtO = self.HtOBias + deltaVektHtO
         self.vektBiasHtO = self.vektBiasHtO + deltaVektBiasHtO
 
-        return self.vektItH
-        # Repetere for de siste vektene.
+        return sensitivitetHtO
 
 
-
-
-
-
-
-Program = NeuraltNettverk(20,2,10)
+Program = NeuraltNettverk(10,2,100)
 Program.lageVekter()
-matrise = Program.FeedForward()
-test = Program.Backward()
 
-print(test.shape)
-
-
-
-
-
+for iterasjon in range(0,100):
+    test = Program.FeedForward()
+    Program.Backward()
+    print(test)
 
