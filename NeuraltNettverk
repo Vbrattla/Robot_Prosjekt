@@ -45,9 +45,6 @@ class LastBilder():
 
 
 class NeuraltNettverk():
-
-    # TODO: FINNE EN WEIGHT DECAY SOM ER EN FUNKSJON AV INNGANGSVARIABLENE.
-
     def __init__(self,nh):
         # Argumenter;  nh = gjemte noder
         # Alle vektorene vil ha 432 features og vi vil alltid ha 2 klasser.
@@ -72,8 +69,6 @@ class NeuraltNettverk():
         self.vektBiasItH = numpy.empty((self.nh,1))
         self.HtOBias = numpy.ones((self.antallKlasser,1))
         self.vektBiasHtO = numpy.empty((self.antallKlasser,1))
-
-
 
 
     def lageVekter(self):
