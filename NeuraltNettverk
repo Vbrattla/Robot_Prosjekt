@@ -1,28 +1,67 @@
-import numpy
+
 import math, random
+import cv2
+from PIL import Image
+import numpy
+
+class LastBilder():
+
+    def __init__(self):
+        # Initierer HoG variabler. Initierer parameterisering av HoG.
+        self.HOGde = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 6)
+
+    def ImportTrening(self,antallPos,antallNeg):
+        # Maksimum treningsdata er 687 positive og 836 negative. Utforer HoG og samler i matriser
+        # Treningsdata har default vindusstorrelse paa bilder: 32x64.
+        # Anvender HoG blokkstorrelse paa 4x4 og cellestorrelse 8x8.
+        # Tilsvarer 432 features per bilde
+
+        # Lager tomme matriser
+        self.posTrening = numpy.empty((1,288))
+        self.negTrening = numpy.empty((1,288))
+
+        # Bildesti til treningsdata
+        self.sti = "C:\Users\Vegard\Documents\Python\Ansikt_Database"
+
+        for pos in range(1,antallPos):
+            # Laster inn bilder med fjes og utforer HoG. Endrer storrelse med resize(bredde,hoyde)
+            bildeNavnPos = "\PosTrening (" + str(pos) + ").jpg"
+            bildeSti = str(self.sti+""+bildeNavnPos)
+            bildePos = Image.open(bildeSti)
+            bildePosSkalert = bildePos.resize((32,64), Image.ANTIALIAS)
+            bildePosMat = numpy.asarray(bildePosSkalert)
+            self.posTrening = numpy.vstack([self.posTrening,(self.HOGde.compute(bildePosMat, winStride=(32,64), padding=(0,0))).T])
+
+        for neg in range(1,antallNeg):
+            # Laster inn bilder uten fjes og utforer HoG. Endrer storrelse med resize(bredde,hoyde)
+            bildeNavnNeg = "\NegTrening (" + str(neg) + ").jpg"
+            bildeSti = str(self.sti+""+bildeNavnNeg)
+            bildeNeg = Image.open(bildeSti)
+            bildeNegSkalert = bildeNeg.resize((32,64), Image.ANTIALIAS)
+            bildeNegMat = numpy.asarray(bildeNegSkalert)
+            self.negTrening = numpy.vstack([self.negTrening,(self.HOGde.compute(bildeNegMat, winStride=(32,64), padding=(0,0))).T])
+
+        return self.posTrening,self.negTrening
 
 
 class NeuraltNettverk():
 
-    def __init__(self,nh,c,d):
-        # Argumenter;  nh = gjemte noder, c= antall klasser, d= feature vektor dimensjon
+    # TODO: FINNE EN WEIGHT DECAY SOM ER EN FUNKSJON AV INNGANGSVARIABLENE.
+
+    def __init__(self,nh):
+        # Argumenter;  nh = gjemte noder
+        # Alle vektorene vil ha 432 features og vi vil alltid ha 2 klasser.
 
         # Omraadet vektene skal ligge mellom og antall utganger.
         self.nh = nh
         self.initVekt = 1/math.sqrt(self.nh)
-        self.antallKlasser = c
-        self.antallInput = d
-
-        # Learning raten til det neurale nettverket (mulighet for aa kunne endre)
-        self.larerate = 1
+        self.antallKlasser = 2
+        self.antallInput = 288
+        self.larerate = 0.01
 
         # Lager utgangsvektor fra den gjemte noden og utgangen
         self.fnetHidden = numpy.zeros((self.nh,1))
         self.fnetUtgang = numpy.zeros((self.antallKlasser,1))
-
-        # DUMMY VEKTOR. MAA ERSTATTES!
-        self.target = numpy.array([1,0])
-        self.inngangsVektor = numpy.ones((self.antallInput,1))
 
         # Lager tomme matriser for vektene
         self.vektItH = numpy.empty((self.nh, self.antallInput))
@@ -33,6 +72,8 @@ class NeuraltNettverk():
         self.vektBiasItH = numpy.empty((self.nh,1))
         self.HtOBias = numpy.ones((self.antallKlasser,1))
         self.vektBiasHtO = numpy.empty((self.antallKlasser,1))
+
+
 
 
     def lageVekter(self):
@@ -50,46 +91,47 @@ class NeuraltNettverk():
 
             # Lager Input to Hidden nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
             for kol in range(0,self.antallInput):
-                self.vektItH[rad, kol] = (random.randrange(-100,100) * self.initVekt)/100
+                self.vektItH[rad, kol] = (random.randrange(1,100) * self.initVekt)/100
 
                 # Lager Hidden to Output nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
                 if kol <= self.antallKlasser-1:
-                    self.vektHtO[kol, rad] = (random.randrange(-100,100) * self.initVekt)/100
+                    self.vektHtO[kol, rad] = (random.randrange(1,100) * self.initVekt)/100
 
 
-    def FeedForward(self):
+    def FeedForward(self,inngangsVektor):
         # Regner ut FeedForward for det neurale nettverket.
+        # Denne er sjekket og bor vare ok!
 
         # Finner "net_j" for Input to Hidden
-        self.netHidden = (self.vektItH).dot(self.inngangsVektor) + self.ItHBias*self.vektBiasItH
+        netHidden = (self.vektItH).dot(inngangsVektor) + self.ItHBias*self.vektBiasItH
 
-        # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
+          # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
         for node in range(0,self.nh):
-            self.fnetHidden[node,0] = 1/(1 + math.exp((-1)*self.netHidden[node,0]))
+            self.fnetHidden[node,0] = 1/(1 + math.exp((-1)*netHidden[node,0]))
 
         # Finner "net" for Hidden to Output.
-        self.netUtgang = (self.vektHtO).dot(self.fnetHidden) + self.HtOBias*self.vektBiasHtO
+        netUtgang = (self.vektHtO).dot(self.fnetHidden) + self.HtOBias*self.vektBiasHtO
 
-        # Regner ut utgangsverdiene z. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
+         # Regner ut utgangsverdiene z. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
         for node in range(0,self.antallKlasser):
-            self.fnetUtgang[node,0] = 1/(1 + math.exp((-1)*self.netUtgang[node,0]))
+            self.fnetUtgang[node,0] = 1/(1 + math.exp((-1)*netUtgang[node,0]))
 
         # Returnerer utgangsvektor, der hver element beskrive en klasse.
         return self.fnetUtgang
 
-    def Backward(self):
+    def Backward(self,target,inngangsVektor):
 
         # Finner f(net_1) og f(net_2) derivert
         fnetHiddenDerivert = self.fnetHidden.T*(numpy.ones((1,self.nh)) - self.fnetHidden.T)
         fnetUtgangDerivert = self.fnetUtgang.T*(numpy.ones((1,self.antallKlasser)) - self.fnetUtgang.T)
 
         # Finner sensitiviteten til Hidden to Output og Input to Hidden
-        sensitivitetHtO = (((self.target - self.fnetUtgang.T))*fnetUtgangDerivert).T
+        sensitivitetHtO = (((target - self.fnetUtgang.T))*fnetUtgangDerivert).T
         sensitivitetItH = fnetHiddenDerivert.T*self.vektHtO.T.dot(sensitivitetHtO)
 
         # Finner delta vekt HtO og ItH
         deltaVektHtO = sensitivitetHtO.dot(self.fnetHidden.T)
-        deltaVektItH = sensitivitetItH.dot(self.inngangsVektor.T)
+        deltaVektItH = sensitivitetItH.dot(inngangsVektor.T)
 
         # Finner delta vekt bias HtO og ItH
         # SPORRE TRYGVE! Dersom Y0 er satt til 1, saa vil delta vekt bias = sensitiviteten?
@@ -101,17 +143,45 @@ class NeuraltNettverk():
         self.vektBiasItH = self.vektBiasItH + deltaVektBiasItH
 
         # Oppdaterer Hidden to Output vektene
-        self.vektHtO = self.HtOBias + deltaVektHtO
+        self.vektHtO = self.vektHtO + deltaVektHtO
         self.vektBiasHtO = self.vektBiasHtO + deltaVektBiasHtO
 
-        return sensitivitetHtO
+        return self.vektHtO
 
 
-Program = NeuraltNettverk(10,2,100)
+print("Starter innlasting av data")
+Bilder = LastBilder
+Posbilder, Negbilder = Bilder().ImportTrening(600,600)
+print(Posbilder.shape)
+
+print("Lager de neurale nettverket")
+Program = NeuraltNettverk(43)
 Program.lageVekter()
 
-for iterasjon in range(0,100):
-    test = Program.FeedForward()
-    Program.Backward()
+print("Finner neuralt nettverk")
+
+for iterasjon in range(1,500):
+    targetPos = numpy.array([1, 0])
+    targetNeg = numpy.array([0, 1])
+
+    vektorPos =  numpy.array([Posbilder[iterasjon,0:]]).T
+    test = Program.FeedForward(vektorPos)
+    test6= Program.Backward(targetPos,vektorPos)
+    print("Input Positive")
     print(test)
+
+    vektorNeg =  numpy.array([Negbilder[iterasjon,0:]]).T
+    test = Program.FeedForward(vektorNeg)
+    test6= Program.Backward(targetNeg,vektorNeg)
+    print("Input Negative")
+    print(test)
+
+
+print("Tester positiv")
+testEtterTreningPos = Program.FeedForward(numpy.array([Posbilder[100,0:]]).T)
+print(testEtterTreningPos)
+
+print("Tester Negativ")
+testEtterTreningNeg = Program.FeedForward(numpy.array([Negbilder[100,0:]]).T)
+print(testEtterTreningNeg)
 
