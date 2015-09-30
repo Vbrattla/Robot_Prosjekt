@@ -1,0 +1,65 @@
+class AnsiktsDeteksjon():
+    # Klasse for deteksjon av ansikt i videostroemmen Denne klassen mottar enkelt frames og forsoker aa detektere
+    # om det finnes ansikt. Dersom den finner ansikt finner den lokasjon og returnerer hvor i bildet ansikt(ene)
+    # befinner seg
+
+    # TODO:Pyramideskaleringer - (170x130),
+
+    def __init__(self):
+        # Lager HoG objekt.
+        self.NNHoG = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 6)
+        self.features = numpy.zeros((1,288))
+        self.klassifisering = numpy.zeros((1,2))
+
+        self.terskel = 0.7
+        self.iterasjonsvariabel = 0
+        self.fjesDeteksjon = numpy.array((1,2))
+
+    def behandlerData(self, videoFrame):
+        # Starter med aa redusere bildeopplosning/storrelse til 170x130 (Maa eksperimenteres med!). Lager et
+        # numpy array av featurene.
+        self.bildeHalvert = videoFrame.resize((120,80), Image.ANTIALIAS)
+        self.bildeHalvert = numpy.asarray(self.bildeHalvert)
+
+        # Finner features
+        bildeFeatures = self.NNHoG.compute(self.bildeHalvert, winStride=(4,8), padding=(0,0)).T
+
+        # Finner antall feature vektorer fra HoG
+        antallFeatVektorer = (bildeFeatures.size)/288
+
+        # Lokke for aa finne HoG features i bildet.
+        for iterasjon in range(0,antallFeatVektorer):
+            self.features= numpy.array([bildeFeatures[0,iterasjon*288:iterasjon*288+288]]).T
+
+            # Kaller Neuralt Nettverk objektet.
+            self.klassifisering = numpy.vstack([self.klassifisering,Program.FeedForward(self.features).T])
+
+        return antallFeatVektorer
+
+
+    def fjesLokalisering(self,klassifiseringsVektor):
+      # Det glidende vinduet beveger seg horisontalt, for saa aa droppe ned naar det har naadd enden.
+      # Bruker winstride (4,8), tilsvarer 8 piksler overlapp vertikalt og 4 piksler overlapp horisontalt.
+      #
+      # Starter med en fast dimensjon (ENDRES VED PYRAMIDE): 120x80.
+      # Tilsvarer 10 blokker horisontal, og 7 blokk vertikal = 70 blokker.
+
+
+      # Tar utgangspunkt 120x80 piksler.
+        for vertikal in range(0,6):
+           for horisontal in range(0,10):
+             # Finne en annen iterasjonsmetode?
+             self.iterasjonsvariabel = self.iterasjonsvariabel + 1
+
+           # Sjekker mot terskel for positiv fjesdeteksjon
+             sjekkMotTerskel = klassifiseringsVektor[self.iterasjonsvariabel, 0]
+
+             if sjekkMotTerskel >= self.terskel:
+                 # Vinduet er av storrelse 64x32. Brukes i etterkant
+                 self.fjesDeteksjon = [vertikal,horisontal]
+
+                 # Fyller inn i tabell.
+                 self.fjesDeteksjon = numpy.vstack([self.fjesDeteksjon,self.fjesDeteksjon])
+
+        # Returnerer pikselomraader hvor det er detektert fjes.
+        return self.fjesDeteksjon, klassifiseringsVektor
