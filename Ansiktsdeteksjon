@@ -6,7 +6,7 @@ class AnsiktsDeteksjon():
     # TODO:Pyramideskaleringer - (170x130),
 
     def __init__(self):
-        # Lager HoG objekt.
+        # Lager HoG objekt med vindu 32x64
         self.NNHoG = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 6)
         self.features = numpy.zeros((1,288))
         self.klassifisering = numpy.zeros((1,2))
@@ -16,12 +16,12 @@ class AnsiktsDeteksjon():
         self.fjesDeteksjon = numpy.array((1,2))
 
     def behandlerData(self, videoFrame):
-        # Starter med aa redusere bildeopplosning/storrelse til 170x130 (Maa eksperimenteres med!). Lager et
+        # Starter med aa redusere bildeopplosning/storrelse til 120x80 (Maa eksperimenteres med!). Lager et
         # numpy array av featurene.
         self.bildeHalvert = videoFrame.resize((120,80), Image.ANTIALIAS)
         self.bildeHalvert = numpy.asarray(self.bildeHalvert)
 
-        # Finner features
+        # Finner features. Winstride = hvor mye vinduet skal forflytte seg
         bildeFeatures = self.NNHoG.compute(self.bildeHalvert, winStride=(4,8), padding=(0,0)).T
 
         # Finner antall feature vektorer fra HoG
@@ -35,7 +35,6 @@ class AnsiktsDeteksjon():
             self.klassifisering = numpy.vstack([self.klassifisering,Program.FeedForward(self.features).T])
 
         return antallFeatVektorer
-
 
     def fjesLokalisering(self,klassifiseringsVektor):
       # Det glidende vinduet beveger seg horisontalt, for saa aa droppe ned naar det har naadd enden.
