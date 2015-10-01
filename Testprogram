@@ -4,21 +4,22 @@ import cv2
 from PIL import Image
 import numpy
 
+
 class LastBilder():
+    # Klasse for aa laste inn bilder og lage egenskapsvektorer.
 
     def __init__(self):
-        # Initierer HoG variabler. Initierer parameterisering av HoG.
-        self.HOGde = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 6)
+        # Oppretter HoG objekt. Finner HoG i 48x64 vindu. Hvert vindu bestaar av 4 celler med
+        # 8 piksler i hver celle. Deler opp i 6 orienteringer.
+        self.HOGde = cv2.HOGDescriptor((48,64), (32,32), (16,16), (8,8), 6)
 
     def ImportTrening(self,antallPos,antallNeg):
         # Maksimum treningsdata er 687 positive og 836 negative. Utforer HoG og samler i matriser
-        # Treningsdata har default vindusstorrelse paa bilder: 32x64.
-        # Anvender HoG blokkstorrelse paa 4x4 og cellestorrelse 8x8.
-        # Tilsvarer 432 features per bilde
+        # Treningsdata har default vindusstorrelse paa bilder: 48x64.
 
-        # Lager tomme matriser
-        self.posTrening = numpy.empty((1,288))
-        self.negTrening = numpy.empty((1,288))
+        # Lager tomme matriser til HoG egenskapsvektorene.
+        self.posTrening = numpy.empty((1,576))
+        self.negTrening = numpy.empty((1,576))
 
         # Bildesti til treningsdata
         self.sti = "C:\Users\Vegard\Documents\Python\Ansikt_Database"
@@ -28,32 +29,34 @@ class LastBilder():
             bildeNavnPos = "\PosTrening (" + str(pos) + ").jpg"
             bildeSti = str(self.sti+""+bildeNavnPos)
             bildePos = Image.open(bildeSti)
-            bildePosSkalert = bildePos.resize((32,64), Image.ANTIALIAS)
+            bildePosSkalert = bildePos.resize((48,64), Image.ANTIALIAS)
             bildePosMat = numpy.asarray(bildePosSkalert)
-            self.posTrening = numpy.vstack([self.posTrening,(self.HOGde.compute(bildePosMat, winStride=(32,64), padding=(0,0))).T])
+            self.posTrening = numpy.vstack([self.posTrening,(self.HOGde.compute(bildePosMat,padding=(0,0))).T])
 
         for neg in range(1,antallNeg):
             # Laster inn bilder uten fjes og utforer HoG. Endrer storrelse med resize(bredde,hoyde)
             bildeNavnNeg = "\NegTrening (" + str(neg) + ").jpg"
             bildeSti = str(self.sti+""+bildeNavnNeg)
             bildeNeg = Image.open(bildeSti)
-            bildeNegSkalert = bildeNeg.resize((32,64), Image.ANTIALIAS)
+            bildeNegSkalert = bildeNeg.resize((48,64), Image.ANTIALIAS)
             bildeNegMat = numpy.asarray(bildeNegSkalert)
-            self.negTrening = numpy.vstack([self.negTrening,(self.HOGde.compute(bildeNegMat, winStride=(32,64), padding=(0,0))).T])
+            self.negTrening = numpy.vstack([self.negTrening,(self.HOGde.compute(bildeNegMat,padding=(0,0))).T])
 
         return self.posTrening,self.negTrening
 
 
 class NeuraltNettverk():
-    def __init__(self,nh):
-        # Argumenter;  nh = gjemte noder
-        # Alle vektorene vil ha 432 features og vi vil alltid ha 2 klasser.
+    # Opprettet et neuralt nettverk
 
-        # Omraadet vektene skal ligge mellom og antall utganger.
+    def __init__(self,nh):
+        # Variabler
+        # nh = antall gjemte noder, initVekt = initialverdi til vektene.
         self.nh = nh
         self.initVekt = 1/math.sqrt(self.nh)
         self.antallKlasser = 2
-        self.antallInput = 288
+        self.antallInput = 576
+
+        # Kan implementeres i fremtiden.
         self.larerate = 0.01
 
         # Lager utgangsvektor fra den gjemte noden og utgangen
@@ -70,9 +73,8 @@ class NeuraltNettverk():
         self.HtOBias = numpy.ones((self.antallKlasser,1))
         self.vektBiasHtO = numpy.empty((self.antallKlasser,1))
 
-
     def lageVekter(self):
-    # Denne metoden initerer vekter og bias til det neurale nettverket.
+    # Denne metoden initerer verdiene til vekter og bias til det neurale nettverket.
 
         # Fyller inn verdier i nodevekt og bias.
         for rad in range(0, self.nh):
@@ -86,36 +88,38 @@ class NeuraltNettverk():
 
             # Lager Input to Hidden nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
             for kol in range(0,self.antallInput):
-                self.vektItH[rad, kol] = (random.randrange(1,100) * self.initVekt)/100
+                self.vektItH[rad, kol] = (random.randrange(-100,100) * self.initVekt)/100
 
                 # Lager Hidden to Output nodevekt i omraadet -1/sqrt(nh)<noder<1/sqrt(nh).
                 if kol <= self.antallKlasser-1:
-                    self.vektHtO[kol, rad] = (random.randrange(1,100) * self.initVekt)/100
+                    self.vektHtO[kol, rad] = (random.randrange(-100,100) * self.initVekt)/100
 
 
     def FeedForward(self,inngangsVektor):
-        # Regner ut FeedForward for det neurale nettverket.
-        # Denne er sjekket og bor vare ok!
+        # Regner metoden utforer FeedForward for det neurale nettverket.
 
         # Finner "net_j" for Input to Hidden
         netHidden = (self.vektItH).dot(inngangsVektor) + self.ItHBias*self.vektBiasItH
 
-          # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
+        # Finner utgangen til den gjemte noden. Bruker aktiveringsfunkjson paa formen 1/(1+e^(-net))
+        # Har tanh aktiveringsfunksjon som mulighet i fremtiden.
         for node in range(0,self.nh):
+            #self.fnetHidden[node,0] = 1.716*math.tanh(netHidden[node,0]*2/3)
             self.fnetHidden[node,0] = 1/(1 + math.exp((-1)*netHidden[node,0]))
 
         # Finner "net" for Hidden to Output.
         netUtgang = (self.vektHtO).dot(self.fnetHidden) + self.HtOBias*self.vektBiasHtO
 
-         # Regner ut utgangsverdiene z. Bruker aktiveringsfunkjson paa formen 1/(1+e^(net))
+        # Regner ut utgangsverdiene z. Bruker aktiveringsfunkjson paa formen 1/(1+e^(-net))
+        # Har tanh aktiveringsfunksjon som mulighet i fremtiden.
         for node in range(0,self.antallKlasser):
+            #self.fnetUtgang[node,0] = 1.716*math.tanh(netUtgang[node,0]*2/3)
             self.fnetUtgang[node,0] = 1/(1 + math.exp((-1)*netUtgang[node,0]))
 
         # Returnerer utgangsvektor, der hver element beskrive en klasse.
         return self.fnetUtgang
 
     def Backward(self,target,inngangsVektor):
-
         # Finner f(net_1) og f(net_2) derivert
         fnetHiddenDerivert = self.fnetHidden.T*(numpy.ones((1,self.nh)) - self.fnetHidden.T)
         fnetUtgangDerivert = self.fnetUtgang.T*(numpy.ones((1,self.antallKlasser)) - self.fnetUtgang.T)
@@ -129,54 +133,139 @@ class NeuraltNettverk():
         deltaVektItH = sensitivitetItH.dot(inngangsVektor.T)
 
         # Finner delta vekt bias HtO og ItH
-        # SPORRE TRYGVE! Dersom Y0 er satt til 1, saa vil delta vekt bias = sensitiviteten?
         deltaVektBiasHtO = sensitivitetHtO
         deltaVektBiasItH = sensitivitetItH
 
         # Oppdaterer Input to Hidden vektene
-        self.vektItH = self.vektItH + deltaVektItH
-        self.vektBiasItH = self.vektBiasItH + deltaVektBiasItH
+        self.vektItH = (self.vektItH + deltaVektItH)
+        self.vektBiasItH = (self.vektBiasItH + deltaVektBiasItH)
 
         # Oppdaterer Hidden to Output vektene
-        self.vektHtO = self.vektHtO + deltaVektHtO
-        self.vektBiasHtO = self.vektBiasHtO + deltaVektBiasHtO
+        self.vektHtO = (self.vektHtO + deltaVektHtO)
+        self.vektBiasHtO = (self.vektBiasHtO + deltaVektBiasHtO)
 
         return self.vektHtO
+
+class AnsiktsDeteksjon():
+    # Klasse for deteksjon av ansikt i videostroemmen
+
+    def __init__(self):
+        # Oppretter HoG objekt. Setter terskel for deteksjon av ansikt fra det neurale nettverket.
+        self.NNHoG = cv2.HOGDescriptor((48, 64), (32,32), (16,16), (8,8), 6)
+        self.klassifisering = numpy.zeros((1,2))
+        self.terskel = 85
+        self.iterasjonsvariabel = 0
+        self.fjesDeteksjon = numpy.array((1,2))
+
+        # Variabler til fjeslokalisering
+        self.bredde = 160
+        self.hoyde = 120
+        self.iterasjonRad = (self.bredde - 48)/4 + 1
+        self.iterasjonKol = (self.hoyde - 64)/4 + 1
+
+    def behandlerData(self, videoFrame):
+        # Endring av bildestorrelse til (bredde,hoyde) og konverterer til numpy array.
+        self.bildeHalvert = videoFrame.resize((self.bredde,self.hoyde), Image.ANTIALIAS)
+        self.bildeHalvertNump = numpy.asarray(self.bildeHalvert)
+
+        # Finner features. Winstride gir forflytning av vindu i form av piksler. Padding anvendes ikke
+        bildeFeatures = self.NNHoG.compute(self.bildeHalvertNump, winStride=(4,4), padding=(0,0)).T
+
+        # Finner antall feature vektorer fra HoG
+        antallFeatVektorer = (bildeFeatures.size)/576
+
+        # Lokke for aa finne HoG features i bildet.
+        for iterasjon in range(0,antallFeatVektorer):
+            features= numpy.array([bildeFeatures[0,iterasjon*576:iterasjon*576+576]]).T
+
+            # Kaller Neuralt Nettverk objektet.
+            self.klassifisering = numpy.vstack([self.klassifisering,Program.FeedForward(features).T])
+
+        # Fjerner forste tomme rad i matrise og endrer til heltallsvisning.
+        self.klassifisering = numpy.delete(self.klassifisering, (0), axis=0)
+        self.klassifisering = numpy.around(self.klassifisering * 100,5)
+
+        return self.klassifisering
+
+    def fjesLokalisering(self,klassifiseringsVektor):
+
+      # Itererer seg igjennom klassifiseringsvektor fra metoden behandlerData. Denne dataen er utgangen fra
+      # det neurale nettverket.
+        for vertikal in range(0,self.iterasjonKol):
+           for horisontal in range(0,self.iterasjonRad):
+
+           # Sjekker hvert element mot terskel for aa lete etter ansikt.
+             sjekkMotTerskel = klassifiseringsVektor[self.iterasjonsvariabel, 0]
+
+             if sjekkMotTerskel >= self.terskel:
+                 # Legger inn vinduets start posisjon i form av horisontal og vertikal pikselnummer.
+                 ansiktsKoordinat = [horisontal*4,vertikal*4]
+
+                 # Legger alle posisjonene i en vektor/matrise.
+                 self.fjesDeteksjon = numpy.vstack([self.fjesDeteksjon,ansiktsKoordinat])
+
+             # Itererer iterasjonsvariabel
+             self.iterasjonsvariabel = self.iterasjonsvariabel + 1
+
+        # Fjerner forste rad av matrisen
+        self.fjesDeteksjon = numpy.delete(self.fjesDeteksjon, (0), axis=0)
+
+        # Returnerer pikselomraader hvor det er detektert fjes.
+        return self.fjesDeteksjon
+
+
+
+
+# ***************************************************************
+#
+# Kjoring av testprogram
+#
+# ***************************************************************
 
 
 print("Starter innlasting av data")
 Bilder = LastBilder
-Posbilder, Negbilder = Bilder().ImportTrening(600,600)
-print(Posbilder.shape)
+Posbilder, Negbilder = Bilder().ImportTrening(300,300)
+
+deteksjon = AnsiktsDeteksjon
 
 print("Lager de neurale nettverket")
-Program = NeuraltNettverk(43)
+Program = NeuraltNettverk(60)
 Program.lageVekter()
 
 print("Finner neuralt nettverk")
 
-for iterasjon in range(1,500):
+for iterasjon in range(1,200):
     targetPos = numpy.array([1, 0])
     targetNeg = numpy.array([0, 1])
 
     vektorPos =  numpy.array([Posbilder[iterasjon,0:]]).T
     test = Program.FeedForward(vektorPos)
     test6= Program.Backward(targetPos,vektorPos)
-    print("Input Positive")
-    print(test)
+    #print("Input Positive")
+    #print(vektorPos)
 
     vektorNeg =  numpy.array([Negbilder[iterasjon,0:]]).T
     test = Program.FeedForward(vektorNeg)
     test6= Program.Backward(targetNeg,vektorNeg)
-    print("Input Negative")
-    print(test)
+    #print("Input Negative")
+    #print(test)
 
+# Kjorer Ansiktsdeteksjons klasse
 
-print("Tester positiv")
-testEtterTreningPos = Program.FeedForward(numpy.array([Posbilder[100,0:]]).T)
-print(testEtterTreningPos)
+print(Posbilder.shape)
 
-print("Tester Negativ")
-testEtterTreningNeg = Program.FeedForward(numpy.array([Negbilder[100,0:]]).T)
-print(testEtterTreningNeg)
+sti = "C:\Users\Vegard\Documents\Python\Ansikt_Database"
+bildeNavnPos = bildeNavnPos = "\Bilde2.jpg"
+bildeSti = str(sti+""+bildeNavnPos)
+bildePos = Image.open(bildeSti)
+
+klassifisering = AnsiktsDeteksjon().behandlerData(bildePos)
+test2 = AnsiktsDeteksjon().fjesLokalisering(klassifisering)
+
+#print("Neuralt Nettverk")
+print(klassifisering)
+
+print("Ansiktskoordinat retur")
+print(test2)
 
