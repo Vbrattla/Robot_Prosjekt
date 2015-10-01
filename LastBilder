@@ -3,6 +3,7 @@ from PIL import Image
 import numpy
 
 class LastBilder():
+    # Klasse for aa laste inn bilder og lage egenskapsvektorer. 
 
     def __init__(self):
         # Oppretter HoG objekt. Finner HoG i 48x64 vindu. Hvert vindu bestaar av 4 celler med 
