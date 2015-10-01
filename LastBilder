@@ -5,18 +5,17 @@ import numpy
 class LastBilder():
 
     def __init__(self):
-        # Initierer HoG variabler. Initierer parameterisering av HoG.
-        self.HOGde = cv2.HOGDescriptor((32, 64), (32,32), (16,16), (8,8), 9)
+        # Oppretter HoG objekt. Finner HoG i 48x64 vindu. Hvert vindu bestaar av 4 celler med 
+        # 8 piksler i hver celle. Deler opp i 6 orienteringer.
+        self.HOGde = cv2.HOGDescriptor((48,64), (32,32), (16,16), (8,8), 6)
 
     def ImportTrening(self,antallPos,antallNeg):
         # Maksimum treningsdata er 687 positive og 836 negative. Utforer HoG og samler i matriser
-        # Treningsdata har default vindusstorrelse paa bilder: 32x64.
-        # Anvender HoG blokkstorrelse paa 4x4 og cellestorrelse 8x8.
-        # Tilsvarer 432 features per bilde
+        # Treningsdata har default vindusstorrelse paa bilder: 48x64.
 
-        # Lager tomme matriser
-        self.posTrening = numpy.empty((1,432))
-        self.negTrening = numpy.empty((1,432))
+        # Lager tomme matriser til HoG egenskapsvektorene. 
+        self.posTrening = numpy.empty((1,576))
+        self.negTrening = numpy.empty((1,576))
 
         # Bildesti til treningsdata
         self.sti = "C:\Users\Vegard\Documents\Python\Ansikt_Database"
@@ -26,21 +25,18 @@ class LastBilder():
             bildeNavnPos = "\PosTrening (" + str(pos) + ").jpg"
             bildeSti = str(self.sti+""+bildeNavnPos)
             bildePos = Image.open(bildeSti)
-            bildePosSkalert = bildePos.resize((32,64), Image.ANTIALIAS)
+            bildePosSkalert = bildePos.resize((48,64), Image.ANTIALIAS)
             bildePosMat = numpy.asarray(bildePosSkalert)
-            self.posTrening = numpy.vstack([self.posTrening,(self.HOGde.compute(bildePosMat, winStride=(32,64), padding=(0,0))).T])
+            self.posTrening = numpy.vstack([self.posTrening,(self.HOGde.compute(bildePosMat,padding=(0,0))).T])
 
         for neg in range(1,antallNeg):
             # Laster inn bilder uten fjes og utforer HoG. Endrer storrelse med resize(bredde,hoyde)
             bildeNavnNeg = "\NegTrening (" + str(neg) + ").jpg"
             bildeSti = str(self.sti+""+bildeNavnNeg)
             bildeNeg = Image.open(bildeSti)
-            bildeNegSkalert = bildeNeg.resize((32,64), Image.ANTIALIAS)
+            bildeNegSkalert = bildeNeg.resize((48,64), Image.ANTIALIAS)
             bildeNegMat = numpy.asarray(bildeNegSkalert)
-            self.negTrening = numpy.vstack([self.negTrening,(self.HOGde.compute(bildeNegMat, winStride=(32,64), padding=(0,0))).T])
+            self.negTrening = numpy.vstack([self.negTrening,(self.HOGde.compute(bildeNegMat,padding=(0,0))).T])
 
-        return self.posTrening
-
-program = LastBilder
-
+        return self.posTrening,self.negTrening
 
