@@ -1,4 +1,4 @@
-class TestNeuraltNettverk():
+class Confusion():
     # TODO: IMPLEMENTERE FUNKSJON SOM SJEKKER OM DET ER LAGD NEURALT-NETTVERKS OBJEKT I __init__?
 
     def __init__(self):
@@ -7,8 +7,6 @@ class TestNeuraltNettverk():
 
         # Variabler til confusion matrix
         self.terskel = 0.8
-        self.TPR = float(0)        # True Positive Rate/sensitivity
-        self.TNR = float(0)        # True Negative Rate/specificity
 
     def confusionMatrix(self,posTrening,negTrening):
         # Finner antall positive og negative treningsvektorer
