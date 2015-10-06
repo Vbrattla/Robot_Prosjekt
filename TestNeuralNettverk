@@ -1,0 +1,55 @@
+class TestNeuraltNettverk():
+    # TODO: IMPLEMENTERE FUNKSJON SOM SJEKKER OM DET ER LAGD NEURALT-NETTVERKS OBJEKT I __init__?
+
+    def __init__(self):
+        # Definerer variabler.
+        self.confMat = numpy.zeros((2,2))
+
+        # Variabler til confusion matrix
+        self.terskel = 0.8
+        self.TPR = float(0)        # True Positive Rate/sensitivity
+        self.TNR = float(0)        # True Negative Rate/specificity
+
+    def confusionMatrix(self,posTrening,negTrening):
+        # Finner antall positive og negative treningsvektorer
+        antallPos = len(posTrening)
+        antallNeg = len(negTrening)
+
+        # Lager variabler
+        self.TP = float(0)        # True Positiv
+        self.TN = float(0)        # True Negative
+        self.FP = float(0)        # False Positive
+        self.FN = float(0)        # False Negative
+
+        # Starter test av positive treningsbilder.
+        for positiv in range(1,antallPos):
+             # Lager numpy array av vektor
+             vektorPos =  numpy.array([posTrening[positiv,0:]]).T
+             # Kaller det neurale nettverket for klassifisering
+             klassifisertPos = Program.FeedForward(vektorPos)
+             # Sjekker mot terskel om True Positive
+             if klassifisertPos[0] >= self.terskel:
+                 self.TP = self.TP + 1
+
+        # False Negative
+        self.FN = antallPos - self.TP
+
+        # Starter test av negative treningsbilder.
+        for negativ in range(1,antallNeg):
+             # Lager numpy array av vektor
+             vektorNeg =  numpy.array([negTrening[negativ,0:]]).T
+             # Kaller det neurale nettverket for klassifisering
+             klassifisertNeg = Program.FeedForward(vektorNeg)
+             # Sjekker mot terskel om True Positive
+             if klassifisertNeg[1] >= self.terskel:
+                 self.TN = self.TN + 1
+
+        # False Negative
+        self.FP = antallNeg - self.TN
+
+        # Confusion Matrix
+        self.confMat = numpy.array(([self.TP,self.FP],[self.FN,self.TN]))
+
+        # Returnerer confusion matrix
+        return self.confMat
+
