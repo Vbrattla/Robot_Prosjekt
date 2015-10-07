@@ -1,6 +1,6 @@
 class AnsiktsDeteksjon():
-    # Klasse for deteksjon av ansikt i videostroemmen. Returnerer matrise hvor forste rad er bildets 
-    # nedskalering og de etterfolgende radene er deteksjoner av ansikt. 
+    # Klasse for deteksjon av ansikt i videostroemmen. Returnerer matrise hvor forste rad er bildets
+    # nedskalering og de etterfolgende radene er deteksjoner av ansikt.
 
     def __init__(self):
         # Oppretter HoG objekt. Setter terskel for deteksjon av ansikt fra det neurale nettverket.
@@ -14,7 +14,7 @@ class AnsiktsDeteksjon():
         self.hoyde = 240
         self.iterasjonRad = (self.bredde - 48)/4 + 1
         self.iterasjonKol = (self.hoyde - 64)/4 + 1
-        self.fjesDeteksjon = numpy.array([self.bredde,self.hoyde])
+        self.fjesKoordinat = numpy.array([self.bredde,self.hoyde])
 
     def behandlerData(self, videoFrame):
         # Endring av bildestorrelse til (bredde,hoyde) og konverterer til numpy array.
@@ -55,10 +55,10 @@ class AnsiktsDeteksjon():
                  ansiktsKoordinat = [horisontal*4,vertikal*4]
 
                  # Legger alle posisjonene i en vektor/matrise.
-                 self.fjesDeteksjon = numpy.vstack([self.fjesDeteksjon,ansiktsKoordinat])
+                 self.fjesKoordinat = numpy.vstack([self.fjesKoordinat,ansiktsKoordinat])
 
              # Itererer iterasjonsvariabel
              self.iterasjonsvariabel = self.iterasjonsvariabel + 1
 
-        # Returnerer pikselomraader hvor det er detektert fjes. Skalering paa bilde er forste rad. 
-        return self.fjesDeteksjon
+        # Returnerer pikselomraader hvor det er detektert fjes. Skalering paa bilde er forste rad.
+        return self.fjesKoordinat
