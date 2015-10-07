@@ -1,22 +1,23 @@
 class AnsiktsDeteksjon():
-    # Klasse for deteksjon av ansikt i videostroemmen
+    # Klasse for deteksjon av ansikt i videostroemmen. Returnerer matrise hvor forste rad er bildets 
+    # nedskalering og de etterfolgende radene er deteksjoner av ansikt. 
 
     def __init__(self):
-        # Oppretter HoG objekt. Setter terskel for deteksjon av ansikt fra det neurale nettverket. 
+        # Oppretter HoG objekt. Setter terskel for deteksjon av ansikt fra det neurale nettverket.
         self.NNHoG = cv2.HOGDescriptor((48, 64), (32,32), (16,16), (8,8), 6)
         self.klassifisering = numpy.zeros((1,2))
-        self.terskel = 85
+        self.terskel = 90
         self.iterasjonsvariabel = 0
-        self.fjesDeteksjon = numpy.array((1,2))
 
         # Variabler til fjeslokalisering
-        self.bredde = 160
-        self.hoyde = 120
+        self.bredde = 320
+        self.hoyde = 240
         self.iterasjonRad = (self.bredde - 48)/4 + 1
         self.iterasjonKol = (self.hoyde - 64)/4 + 1
+        self.fjesDeteksjon = numpy.array([self.bredde,self.hoyde])
 
     def behandlerData(self, videoFrame):
-        # Endring av bildestorrelse til (bredde,hoyde) og konverterer til numpy array. 
+        # Endring av bildestorrelse til (bredde,hoyde) og konverterer til numpy array.
         self.bildeHalvert = videoFrame.resize((self.bredde,self.hoyde), Image.ANTIALIAS)
         self.bildeHalvertNump = numpy.asarray(self.bildeHalvert)
 
@@ -33,7 +34,7 @@ class AnsiktsDeteksjon():
             # Kaller Neuralt Nettverk objektet.
             self.klassifisering = numpy.vstack([self.klassifisering,Program.FeedForward(features).T])
 
-        # Fjerner forste tomme rad i matrise og endrer til heltallsvisning. 
+        # Fjerner forste tomme rad i matrise og endrer til heltallsvisning.
         self.klassifisering = numpy.delete(self.klassifisering, (0), axis=0)
         self.klassifisering = numpy.around(self.klassifisering * 100,5)
 
@@ -41,28 +42,23 @@ class AnsiktsDeteksjon():
 
     def fjesLokalisering(self,klassifiseringsVektor):
 
-      # Itererer seg igjennom klassifiseringsvektor fra metoden behandlerData. Denne dataen er utgangen fra 
-      # det neurale nettverket. 
+      # Itererer seg igjennom klassifiseringsvektor fra metoden behandlerData. Denne dataen er utgangen fra
+      # det neurale nettverket.
         for vertikal in range(0,self.iterasjonKol):
            for horisontal in range(0,self.iterasjonRad):
 
-           # Sjekker hvert element mot terskel for aa lete etter ansikt. 
+           # Sjekker hvert element mot terskel for aa lete etter ansikt.
              sjekkMotTerskel = klassifiseringsVektor[self.iterasjonsvariabel, 0]
 
              if sjekkMotTerskel >= self.terskel:
                  # Legger inn vinduets start posisjon i form av horisontal og vertikal pikselnummer.
                  ansiktsKoordinat = [horisontal*4,vertikal*4]
 
-                 # Legger alle posisjonene i en vektor/matrise. 
+                 # Legger alle posisjonene i en vektor/matrise.
                  self.fjesDeteksjon = numpy.vstack([self.fjesDeteksjon,ansiktsKoordinat])
 
              # Itererer iterasjonsvariabel
              self.iterasjonsvariabel = self.iterasjonsvariabel + 1
 
-        # Fjerner forste rad av matrisen
-        self.fjesDeteksjon = numpy.delete(self.fjesDeteksjon, (0), axis=0)
-
-        # Returnerer pikselomraader hvor det er detektert fjes.
+        # Returnerer pikselomraader hvor det er detektert fjes. Skalering paa bilde er forste rad. 
         return self.fjesDeteksjon
-
-
