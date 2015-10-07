@@ -1,0 +1,22 @@
+class AnsiktsLokalisjon():
+    # Klasse for aa tegne deteksjonsvindu i det originale bildet.
+    # Tar utgangspunkt i NAO video paa 640x480, der bildet er nedskalert til 160x120.
+    def __init__(self):
+        self.originalHoyde = 480
+        self.originalBredde = 640
+
+    def transformerKoordinat(self,fjesdeteksjon):
+        # vektor fjesdeteksjon inneholder koordinater med detekterte fjes.
+
+        # Finner nedskaleringsfaktoren til bilde
+        skaleringBredde = self.originalBredde/fjesdeteksjon[0,0]
+        skaleringHoyde = self.originalHoyde/fjesdeteksjon[0,1]
+
+        # Lagrer deteksjonsmatrise og fjerner forste rad med skalering
+        self.fjesDeteksjon = numpy.delete(fjesdeteksjon,(0), axis=0)
+
+        # Multipliserer inn skaleringsfaktor for bredde og hoyde
+        self.fjesLokalisjon = numpy.array([self.fjesDeteksjon[0:,0]*skaleringBredde,self.fjesDeteksjon[0:,1]*skaleringHoyde]).T
+
+        # Returnerer lokalisering for fjes i originalt bilde.
+        return self.fjesLokalisjon
