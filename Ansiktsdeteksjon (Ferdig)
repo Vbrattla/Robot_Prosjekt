@@ -40,7 +40,7 @@ class AnsiktsDeteksjon():
 
         return self.klassifisering
 
-    def fjesLokalisering(self,klassifiseringsVektor):
+    def fjesDeteksjon(self,klassifiseringsVektor):
 
       # Itererer seg igjennom klassifiseringsvektor fra metoden behandlerData. Denne dataen er utgangen fra
       # det neurale nettverket.
