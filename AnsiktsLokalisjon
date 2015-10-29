@@ -1,22 +1,75 @@
 class AnsiktsLokalisjon():
     # Klasse for aa tegne deteksjonsvindu i det originale bildet.
     # Tar utgangspunkt i NAO video paa 640x480, der bildet er nedskalert til 160x120.
+    # HoG vindu er 48x64
+
     def __init__(self):
         self.originalHoyde = 480
         self.originalBredde = 640
+        self.originalVinduBredde = 48
+        self.originalVinduHoyde = 64
 
     def transformerKoordinat(self,fjesdeteksjon):
         # vektor fjesdeteksjon inneholder koordinater med detekterte fjes.
 
         # Finner nedskaleringsfaktoren til bilde
-        skaleringBredde = self.originalBredde/fjesdeteksjon[0,0]
-        skaleringHoyde = self.originalHoyde/fjesdeteksjon[0,1]
+        self.skaleringBredde = self.originalBredde/fjesdeteksjon[0,0]
+        self.skaleringHoyde = self.originalHoyde/fjesdeteksjon[0,1]
 
         # Lagrer deteksjonsmatrise og fjerner forste rad med skalering
         self.fjesDeteksjon = numpy.delete(fjesdeteksjon,(0), axis=0)
 
         # Multipliserer inn skaleringsfaktor for bredde og hoyde
-        self.fjesLokalisjon = numpy.array([self.fjesDeteksjon[0:,0]*skaleringBredde,self.fjesDeteksjon[0:,1]*skaleringHoyde]).T
+        self.fjesLokalisjon = numpy.array([self.fjesDeteksjon[0:,0]*self.skaleringBredde,self.fjesDeteksjon[0:,1]*self.skaleringHoyde,
+                                          (self.fjesDeteksjon[0:,0]+self.originalVinduBredde)*self.skaleringBredde,
+                                           (self.fjesDeteksjon[0:,1]+self.originalVinduHoyde)*self.skaleringHoyde]).T
 
         # Returnerer lokalisering for fjes i originalt bilde.
         return self.fjesLokalisjon
+
+    def nonMaximumSuppression(self,detekterteAnsikt, terskel):
+        # Metode fra http://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
+
+        # Finner storrelse paa skalert vindu
+        self.skalertVinduBredde = self.skaleringBredde * self.originalVinduBredde
+        self.skalertVinduHoyde = self.skaleringHoyde * self.originalVinduHoyde
+
+        # Sjekker at elementer er av type float.
+        if detekterteAnsikt.dtype.kind == "i":
+            detekterteAnsikt = detekterteAnsikt.astype("float")
+
+        # Lager en tom liste
+        pick = []
+
+        # Henter ut koordinatene til vinduene
+        x1 = detekterteAnsikt[:,0]
+        y1 = detekterteAnsikt[:,1]
+        x2 = detekterteAnsikt[:,2]
+        y2 = detekterteAnsikt[:,3]
+
+        # Finner arealet i vinduene.
+        areal = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+        idxs = numpy.argsort(y2)
+
+        while len(idxs) > 0:
+
+            last = len(idxs) - 1
+            i = idxs[last]
+            pick.append(i)
+
+            xx1 = numpy.maximum(x1[i], x1[idxs[:last]])
+            yy1 = numpy.maximum(y1[i], y1[idxs[:last]])
+            xx2 = numpy.minimum(x2[i], x2[idxs[:last]])
+            yy2 = numpy.minimum(y2[i], y2[idxs[:last]])
+
+            w = numpy.maximum(0, xx2 - xx1 + 1)
+            h = numpy.maximum(0, yy2 - yy1 + 1)
+
+            overlap = (w * h) / areal[idxs[:last]]
+
+            idxs = numpy.delete(idxs, numpy.concatenate(([last],
+			    numpy.where(overlap > terskel)[0])))
+
+        return detekterteAnsikt[pick].astype("int")
+
