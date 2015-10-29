@@ -147,7 +147,8 @@ class NeuraltNettverk():
         return self.vektHtO
 
 class AnsiktsDeteksjon():
-    # Klasse for deteksjon av ansikt i videostroemmen
+    # Klasse for deteksjon av ansikt i videostroemmen. Returnerer matrise hvor forste rad er bildets
+    # nedskalering og de etterfolgende radene er deteksjoner av ansikt.
 
     def __init__(self):
         # Oppretter HoG objekt. Setter terskel for deteksjon av ansikt fra det neurale nettverket.
@@ -155,13 +156,13 @@ class AnsiktsDeteksjon():
         self.klassifisering = numpy.zeros((1,2))
         self.terskel = 85
         self.iterasjonsvariabel = 0
-        self.fjesDeteksjon = numpy.array((1,2))
 
         # Variabler til fjeslokalisering
-        self.bredde = 160
-        self.hoyde = 120
+        self.bredde = 320
+        self.hoyde = 240
         self.iterasjonRad = (self.bredde - 48)/4 + 1
         self.iterasjonKol = (self.hoyde - 64)/4 + 1
+        self.fjesKoordinat = numpy.array([self.bredde,self.hoyde])
 
     def behandlerData(self, videoFrame):
         # Endring av bildestorrelse til (bredde,hoyde) og konverterer til numpy array.
@@ -187,7 +188,7 @@ class AnsiktsDeteksjon():
 
         return self.klassifisering
 
-    def fjesLokalisering(self,klassifiseringsVektor):
+    def fjesDeteksjon(self,klassifiseringsVektor):
 
       # Itererer seg igjennom klassifiseringsvektor fra metoden behandlerData. Denne dataen er utgangen fra
       # det neurale nettverket.
@@ -202,18 +203,143 @@ class AnsiktsDeteksjon():
                  ansiktsKoordinat = [horisontal*4,vertikal*4]
 
                  # Legger alle posisjonene i en vektor/matrise.
-                 self.fjesDeteksjon = numpy.vstack([self.fjesDeteksjon,ansiktsKoordinat])
+                 self.fjesKoordinat = numpy.vstack([self.fjesKoordinat,ansiktsKoordinat])
 
              # Itererer iterasjonsvariabel
              self.iterasjonsvariabel = self.iterasjonsvariabel + 1
 
-        # Fjerner forste rad av matrisen
-        self.fjesDeteksjon = numpy.delete(self.fjesDeteksjon, (0), axis=0)
-
-        # Returnerer pikselomraader hvor det er detektert fjes.
-        return self.fjesDeteksjon
+        # Returnerer pikselomraader hvor det er detektert fjes. Skalering paa bilde er forste rad.
+        return self.fjesKoordinat
 
 
+class TestNeuraltNettverk():
+    # TODO: IMPLEMENTERE FUNKSJON SOM SJEKKER OM DET ER LAGD NEURALT-NETTVERKS OBJEKT I __init__?
+
+    def __init__(self):
+        # Definerer variabler.
+        self.confMat = numpy.zeros((2,2))
+
+        # Variabler til confusion matrix
+        self.terskel = 0.8
+
+    def confusionMatrix(self,posTrening,negTrening):
+        # Finner antall positive og negative treningsvektorer
+        antallPos = len(posTrening)
+        antallNeg = len(negTrening)
+
+        # Lager variabler
+        self.TP = float(0)        # True Positiv
+        self.TN = float(0)        # True Negative
+        self.FP = float(0)        # False Positive
+        self.FN = float(0)        # False Negative
+
+        # Starter test av positive treningsbilder.
+        for positiv in range(1,antallPos):
+             # Lager numpy array av vektor
+             vektorPos =  numpy.array([posTrening[positiv,0:]]).T
+             # Kaller det neurale nettverket for klassifisering
+             klassifisertPos = Program.FeedForward(vektorPos)
+             # Sjekker mot terskel om True Positive
+             if klassifisertPos[0] >= self.terskel:
+                 self.TP = self.TP + 1
+
+        # False Negative
+        self.FN = antallPos - self.TP
+
+        # Starter test av negative treningsbilder.
+        for negativ in range(1,antallNeg):
+             # Lager numpy array av vektor
+             vektorNeg =  numpy.array([negTrening[negativ,0:]]).T
+             # Kaller det neurale nettverket for klassifisering
+             klassifisertNeg = Program.FeedForward(vektorNeg)
+             # Sjekker mot terskel om True Positive
+             if klassifisertNeg[1] >= self.terskel:
+                 self.TN = self.TN + 1
+
+        # False Negative
+        self.FP = antallNeg - self.TN
+
+        # Confusion Matrix
+        self.confMat = numpy.array(([self.TP,self.FP],[self.FN,self.TN]))
+
+        # Returnerer confusion matrix
+        return self.confMat
+
+
+class AnsiktsLokalisjon():
+    # Klasse for aa tegne deteksjonsvindu i det originale bildet.
+    # Tar utgangspunkt i NAO video paa 640x480, der bildet er nedskalert til 160x120.
+    # HoG vindu er 48x64
+
+    def __init__(self):
+        self.originalHoyde = 480
+        self.originalBredde = 640
+        self.originalVinduBredde = 48
+        self.originalVinduHoyde = 64
+
+    def transformerKoordinat(self,fjesdeteksjon):
+        # vektor fjesdeteksjon inneholder koordinater med detekterte fjes.
+
+        # Finner nedskaleringsfaktoren til bilde
+        self.skaleringBredde = self.originalBredde/fjesdeteksjon[0,0]
+        self.skaleringHoyde = self.originalHoyde/fjesdeteksjon[0,1]
+
+        # Lagrer deteksjonsmatrise og fjerner forste rad med skalering
+        self.fjesDeteksjon = numpy.delete(fjesdeteksjon,(0), axis=0)
+
+        # Multipliserer inn skaleringsfaktor for bredde og hoyde
+        self.fjesLokalisjon = numpy.array([self.fjesDeteksjon[0:,0]*self.skaleringBredde,self.fjesDeteksjon[0:,1]*self.skaleringHoyde,
+                                          (self.fjesDeteksjon[0:,0]+self.originalVinduBredde)*self.skaleringBredde,
+                                           (self.fjesDeteksjon[0:,1]+self.originalVinduHoyde)*self.skaleringHoyde]).T
+
+        # Returnerer lokalisering for fjes i originalt bilde.
+        return self.fjesLokalisjon
+
+    def nonMaximumSuppression(self,detekterteAnsikt, terskel):
+        # Metode fra http://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
+
+        # Finner storrelse paa skalert vindu
+        self.skalertVinduBredde = self.skaleringBredde * self.originalVinduBredde
+        self.skalertVinduHoyde = self.skaleringHoyde * self.originalVinduHoyde
+
+        # Sjekker at elementer er av type float.
+        if detekterteAnsikt.dtype.kind == "i":
+            detekterteAnsikt = detekterteAnsikt.astype("float")
+
+        # Lager en tom liste
+        pick = []
+
+        # Henter ut koordinatene til vinduene
+        x1 = detekterteAnsikt[:,0]
+        y1 = detekterteAnsikt[:,1]
+        x2 = detekterteAnsikt[:,2]
+        y2 = detekterteAnsikt[:,3]
+
+        # Finner arealet i vinduene.
+        areal = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+        idxs = numpy.argsort(y2)
+
+        while len(idxs) > 0:
+
+            last = len(idxs) - 1
+            i = idxs[last]
+            pick.append(i)
+
+            xx1 = numpy.maximum(x1[i], x1[idxs[:last]])
+            yy1 = numpy.maximum(y1[i], y1[idxs[:last]])
+            xx2 = numpy.minimum(x2[i], x2[idxs[:last]])
+            yy2 = numpy.minimum(y2[i], y2[idxs[:last]])
+
+            w = numpy.maximum(0, xx2 - xx1 + 1)
+            h = numpy.maximum(0, yy2 - yy1 + 1)
+
+            overlap = (w * h) / areal[idxs[:last]]
+
+            idxs = numpy.delete(idxs, numpy.concatenate(([last],
+			    numpy.where(overlap > terskel)[0])))
+
+        return detekterteAnsikt[pick].astype("int")
 
 
 # ***************************************************************
@@ -227,7 +353,7 @@ print("Starter innlasting av data")
 Bilder = LastBilder
 Posbilder, Negbilder = Bilder().ImportTrening(300,300)
 
-deteksjon = AnsiktsDeteksjon
+Deteksjon = AnsiktsDeteksjon()
 
 print("Lager de neurale nettverket")
 Program = NeuraltNettverk(60)
@@ -235,7 +361,7 @@ Program.lageVekter()
 
 print("Finner neuralt nettverk")
 
-for iterasjon in range(1,200):
+for iterasjon in range(1,300):
     targetPos = numpy.array([1, 0])
     targetNeg = numpy.array([0, 1])
 
@@ -243,7 +369,7 @@ for iterasjon in range(1,200):
     test = Program.FeedForward(vektorPos)
     test6= Program.Backward(targetPos,vektorPos)
     #print("Input Positive")
-    #print(vektorPos)
+    #print(test)
 
     vektorNeg =  numpy.array([Negbilder[iterasjon,0:]]).T
     test = Program.FeedForward(vektorNeg)
@@ -256,16 +382,30 @@ for iterasjon in range(1,200):
 print(Posbilder.shape)
 
 sti = "C:\Users\Vegard\Documents\Python\Ansikt_Database"
-bildeNavnPos = bildeNavnPos = "\Bilde2.jpg"
+bildeNavnPos = bildeNavnPos = "\Bilde4.jpg"
 bildeSti = str(sti+""+bildeNavnPos)
 bildePos = Image.open(bildeSti)
 
-klassifisering = AnsiktsDeteksjon().behandlerData(bildePos)
-test2 = AnsiktsDeteksjon().fjesLokalisering(klassifisering)
+klassifisering = Deteksjon.behandlerData(bildePos)
+test2 = Deteksjon.fjesDeteksjon(klassifisering)
+
+print('Test')
+Test = TestNeuraltNettverk()
+test = Test.confusionMatrix(Posbilder,Negbilder)
+
+#print(test)
+
+Tegne = AnsiktsLokalisjon()
+
+test3 = Tegne.transformerKoordinat(test2)
+
+test4 = Tegne.nonMaximumSuppression(test3, 0.5)
 
 #print("Neuralt Nettverk")
-print(klassifisering)
+#print(klassifisering)
 
 print("Ansiktskoordinat retur")
-print(test2)
+print(test3)
+print("del 2")
+print(test4)
 
